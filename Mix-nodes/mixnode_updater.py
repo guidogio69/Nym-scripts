@@ -126,6 +126,9 @@ def main():
             print(f"El servicio estuvo caído durante {downtime:.2f} segundos")
             
             print("Actualización completada exitosamente")
+            print("####################################")
+            print("RECUERDA REALIZAR LOS CAMBIOS NECESARIOS EN LA WALLET")
+            print("####################################")
         else:
             print(f"La versión instalada ({current_version}) ya es la más reciente. No se realizará la actualización.")
             os.remove(tmp_binary_path)  # Elimina el binario descargado si no es necesario
