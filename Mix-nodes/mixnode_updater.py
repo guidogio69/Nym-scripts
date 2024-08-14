@@ -6,9 +6,14 @@ import time
 from datetime import datetime
 
 # URL del binario
-binary_url = "https://github.com/nymtech/nym/releases/latest/download/nym-node" # Se puede cambiar por la version especifica que se quiere actualizar, por default es latest
-binary_path = "/home/ubuntu/Nymnode/nym-node"  # Ruta donde debe estar instalado el binario
+binary_url = "https://github.com/nymtech/nym/releases/latest/download/nym-node"  # Se puede cambiar por la version especifica que se quiere actualizar, por default es latest
+binary_path = "/usr/local/bin/nym-node"  # Ruta donde debe estar instalado el binario
 service_name = "nym-node.service"  # Nombre del servicio systemd
+
+def set_env_variable():
+    """Establecer una variable de entorno con la ruta del binario."""
+    os.environ["NYM_BINARY_PATH"] = binary_path
+    print(f"Variable de entorno NYM_BINARY_PATH establecida en: {binary_path}")
 
 def get_binary_version(binary_path):
     """Obtener la versión del binario utilizando el comando `build-info`."""
@@ -52,7 +57,6 @@ def replace_binary(new_binary, current_binary):
     shutil.move(new_binary, current_binary)
     print(f"Reemplazado el binario en {current_binary}")
 
-
 def backup_config():
     """Crear un backup de los archivos de configuración y recomendar su transferencia por SCP."""
     config_path = "/.nym/nym-nodes/"
@@ -73,11 +77,13 @@ def backup_config():
     # Recomendación para extraer el archivo y enviarlo por SCP
     print(f"Recomendación: Extrae el archivo de backup y envíalo por SCP a otro sitio:\nscp {backup_file} user@remote_host:/path/to/destination")
 
-
 def main():
-    #Crea un backup de los archivos de configuración.
+    # Establecer la variable de entorno
+    set_env_variable()
+    
+    # Crear un backup de los archivos de configuración
     backup_config()
-
+    
     # Verificar si el binario actual existe y obtener su versión
     current_version = get_binary_version(binary_path)
     
