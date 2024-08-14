@@ -215,7 +215,13 @@ def main():
 
     # Extraer el ID del nodo y establecerlo como una variable de entorno
     node_id = extract_node_id()
-
+   
+    # Verificar si el binario actual existe y obtener su versión
+    current_version = get_binary_version(binary_path)
+    
+    ####
+    # Aqui se deberá implementar un if current_version es menor a 1.1.5 no haga el turn on del wireward
+    ####
     if node_id:
         # Ruta al archivo config.toml
         config_path = os.path.expanduser(f"~/.nym/nym-nodes/{node_id}/config")
@@ -225,10 +231,8 @@ def main():
 
     # Verificar y actualizar la opción wireguard en el servicio systemd
     check_and_update_wireguard()
-    
-    # Verificar si el binario actual existe y obtener su versión
-    current_version = get_binary_version(binary_path)
-    
+
+
     # Descarga el nuevo binario a un archivo temporal
     tmp_binary_path = "/tmp/nym-node-new"
     download_latest_binary(binary_url, tmp_binary_path)
