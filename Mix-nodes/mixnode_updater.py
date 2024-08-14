@@ -65,7 +65,7 @@ def replace_binary(new_binary, current_binary):
 
 def backup_config():
     """Crear un backup de los archivos de configuración y recomendar su transferencia por SCP."""
-    config_path = "/.nym/nym-nodes/"
+    config_path = os.path.expanduser("~/.nym/nym-nodes/")
     home_dir = os.path.expanduser("~")
     backup_dir = os.path.join(home_dir, "nym_backup")
     
