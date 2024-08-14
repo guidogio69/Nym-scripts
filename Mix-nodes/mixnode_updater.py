@@ -5,10 +5,16 @@ import shutil
 import time
 from datetime import datetime
 
+################################################
+############ VERIFICAR Y CAMBIAR ###############
+################################################
+
 # URL del binario
 binary_url = "https://github.com/nymtech/nym/releases/latest/download/nym-node"  # Se puede cambiar por la version especifica que se quiere actualizar, por default es latest
 binary_path = "/usr/local/bin/nym-node"  # Ruta donde debe estar instalado el binario
 service_name = "nym-node.service"  # Nombre del servicio systemd
+
+################################################
 
 def set_env_variable():
     """Establecer una variable de entorno con la ruta del binario."""
