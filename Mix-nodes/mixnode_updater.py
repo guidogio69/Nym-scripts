@@ -221,7 +221,7 @@ def main():
     
     ####
     # Aqui se deberá implementar un if current_version es menor a 1.1.5 no haga el turn on del wireward
-    ####
+    #### de lo contrario es autoritativo y lo hace independientemente de la version
     if node_id:
         # Ruta al archivo config.toml
         config_path = os.path.expanduser(f"~/.nym/nym-nodes/{node_id}/config")
