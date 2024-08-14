@@ -4,6 +4,7 @@ import requests
 import shutil
 import time
 from datetime import datetime
+from packaging import version
 
 ################################################
 ############ VERIFICAR Y CAMBIAR ###############
@@ -75,6 +76,7 @@ def get_binary_version(binary_path):
     except FileNotFoundError:
         print(f"El binario no existe en la ruta {binary_path}.")
         return None
+    
 def update_config_toml(config_file_path):
     """
     Actualiza el archivo config.toml cambiando 'enabled = false' a 'enabled = true' en la sección [wireguard].
@@ -113,6 +115,15 @@ def update_config_toml(config_file_path):
     except Exception as e:
         print(f"Error al actualizar el archivo de configuración: {e}")
 
+def is_version_eligible(current_version, minimum_version="1.1.5"):
+    """
+    Comprueba si la versión actual del binario es mayor o igual a la versión mínima requerida.
+    
+    :param current_version: La versión actual del binario.
+    :param minimum_version: La versión mínima requerida.
+    :return: True si la versión actual es mayor o igual a la mínima, False en caso contrario.
+    """
+    return version.parse(current_version) >= version.parse(minimum_version)
 
 def check_and_update_wireguard(service_file=f"/etc/systemd/system/{service_name}"):
     """
@@ -219,18 +230,20 @@ def main():
     # Verificar si el binario actual existe y obtener su versión
     current_version = get_binary_version(binary_path)
     
-    ####
-    # Aqui se deberá implementar un if current_version es menor a 1.1.5 no haga el turn on del wireward
-    #### de lo contrario es autoritativo y lo hace independientemente de la version
-    if node_id:
-        # Ruta al archivo config.toml
-        config_path = os.path.expanduser(f"~/.nym/nym-nodes/{node_id}/config")
-        
-        # Actualizar el archivo config.toml
-        update_config_toml(config_path)
+    if current_version and is_version_eligible(current_version):
+            print(f"La versión {current_version} es elegible para actualización.")
+            
+            if node_id:
+                # Ruta al archivo config.toml
+                config_path = os.path.expanduser(f"~/.nym/nym-nodes/{node_id}/config")
 
-    # Verificar y actualizar la opción wireguard en el servicio systemd
-    check_and_update_wireguard()
+                # Actualizar el archivo config.toml
+                update_config_toml(config_path)
+
+                # Verificar y actualizar la opción wireguard en el servicio systemd
+                check_and_update_wireguard()
+            else:
+                print(f"La versión {current_version} no es elegible para la actualización. Se omiten los cambios de Wireguard.")
 
 
     # Descarga el nuevo binario a un archivo temporal
