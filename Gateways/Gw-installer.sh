@@ -118,8 +118,6 @@ clean_old_configurations() {
         echo "El directorio $config_dir no existe."
     fi
 }
-
-
 # Función para cambiar la prioridad de IPv4 sobre IPv6
 change_ip_priority() {
     echo "Cambiando prioridad de IPv4 sobre IPv6..."
@@ -183,6 +181,8 @@ initialize_node() {
         --accept-operator-terms-and-conditions \
         --wireguard-enabled true
 }
+
+
 
 # Función para agregar una dirección IPv6 al archivo config.toml sin duplicar IPs existentes
 add_ipv6_to_config() {
@@ -376,10 +376,10 @@ main() {
     install_ufw
     install_rust
     configure_ufw
+    clean_old_configurations
     get_network_info
     change_ip_priority
     configure_nofile_limit
-    clean_old_configurations
     update_network_interfaces
     install_nym_node
     initialize_node
