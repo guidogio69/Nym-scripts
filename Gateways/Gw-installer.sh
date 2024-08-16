@@ -86,21 +86,19 @@ configure_ufw() {
 }
 # Función para obtener la IPv4, IPv6 y el gateway de IPv6
 get_network_info() {
-    echo "Obteniendo la información de red..."
+    # Obtener IPv4
+    local IPv4=$(curl -s4 ifconfig.me)
 
-    # Obtener la dirección IPv4
-    IPv4=$(ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1)
-    echo "Dirección IPv4: $IPv4"
+    # Obtener IPv6
+    local IPv6=$(curl -s6 ifconfig.co)
 
-    # Obtener la dirección IPv6
-    IPv6=$(ip -6 addr show scope global | grep inet6 | awk '{print $2}' | cut -d/ -f1)
-    echo "Dirección IPv6: $IPv6"
+    # Obtener el gateway IPv6
+    local ipv6_gateway=$(ip -6 route | grep default | awk '{print $3}')
 
-    # Obtener el gateway de IPv6
-    IPv6_Gateway=$(ip -6 route show default | grep default | awk '{print $3}')
-    echo "Gateway IPv6: $IPv6_Gateway"
-
-    # Las variables ahora contienen las direcciones IPv4, IPv6 y el gateway de IPv6
+    # Imprimir los resultados para su uso posterior
+    echo "IPv4: $IPv4"
+    echo "IPv6: $IPv6"
+    echo "IPv6 Gateway: $ipv6_gateway"
 }
 
 # Función para limpiar configuraciones antiguas
@@ -186,69 +184,36 @@ initialize_node() {
 
 # Función para agregar una dirección IPv6 al archivo config.toml sin duplicar IPs existentes
 add_ipv6_to_config() {
-    local nombre_id="$1"
-    local ipv4="$2"
-    local ipv6="$3"
+    local nombre_id="$ID"
     local config_path="$HOME/.nym/nym-nodes/$nombre_id/config/config.toml"
 
     if [ -f "$config_path" ]; then
+        echo "Actualizando $config_path"
+
         # Leer el contenido del archivo
-        local in_block=false
-        local public_ips_block=""
-        local new_lines=()
-        local found_block=false
+        local lines=$(<"$config_path")
 
-        while IFS= read -r line; do
-            if [[ $line =~ ^public_ips\ =\ \[ ]]; then
-                in_block=true
-                public_ips_block+="$line"$'\n'
-                found_block=true
-            elif $in_block; then
-                if [[ $line =~ ^\]\ $ ]]; then
-                    in_block=false
-                    # Procesar el bloque de IPs
-                    local existing_ips
-                    existing_ips=$(echo "$public_ips_block" | grep -oP "'\K[^']+" | tr '\n' ' ')
-                    
-                    # Convertir a un array y eliminar entradas vacías
-                    IFS=' ' read -r -a ip_array <<< "$existing_ips"
-                    local updated_ips=()
-                    for ip in "${ip_array[@]}"; do
-                        if [[ -n "$ip" && "$ip" != "$ipv4" && "$ip" != "$ipv6" ]]; then
-                            updated_ips+=("$ip")
-                        fi
-                    done
+        # Verificar si hay un bloque 'public_ips'
+        if grep -q 'public_ips =' "$config_path"; then
+            local block=$(sed -n '/public_ips = \[/,/]/p' "$config_path")
+            local existing_ips=$(echo "$block" | grep -oP "'\K[^']+")
 
-                    if [[ ! " ${updated_ips[*]} " =~ " $ipv6 " ]]; then
-                        updated_ips+=("$ipv6")
-                    fi
-
-                    # Reconstruir el bloque de IPs
-                    public_ips_block="public_ips = ["
-                    for ip in "${updated_ips[@]}"; do
-                        public_ips_block+="\n'$ip',"
-                    done
-                    public_ips_block+="\n]"
-
-                    new_lines+=("$public_ips_block")
-                else
-                    public_ips_block+="$line"$'\n'
-                fi
-            else
-                new_lines+=("$line")
+            # Comprobar si la IPv6 ya está en la lista
+            if ! echo "$existing_ips" | grep -q "$IPv6"; then
+                existing_ips=$(echo "$existing_ips" | sed "/^$/d")
+                existing_ips="$existing_ips, '$IPv6'"
             fi
-        done < "$config_path"
 
-        if ! $found_block; then
-            new_lines+=("public_ips = [")
-            new_lines+=("'$ipv4',")
-            new_lines+=("'$ipv6'")
-            new_lines+=("]")
+            # Reescribir el bloque 'public_ips'
+            local new_block="public_ips = [\n$(echo "$existing_ips" | sed "s/,/,\\n/g")\n]\n"
+            sed -i "/public_ips = \[/,/]/d" "$config_path"
+            sed -i "/^# Ip address(es) of this host/a $new_block" "$config_path"
+        else
+            # Agregar un nuevo bloque 'public_ips' si no existe
+            echo -e "\n# Ip address(es) of this host\npublic_ips = [\n'$IPv4',\n'$IPv6'\n]" >> "$config_path"
         fi
 
-        # Escribir el nuevo contenido en el archivo
-        printf "%s\n" "${new_lines[@]}" > "$config_path"
-        echo "Dirección IPv6 añadida correctamente en $config_path"
+        echo "Dirección IPv6 añadida a $config_path"
     else
         echo "El archivo $config_path no existe. Asegúrate de que nym-node haya sido inicializado correctamente."
     fi
@@ -376,7 +341,7 @@ main() {
     update_network_interfaces
     install_nym_node
     initialize_node
-    add_ipv6_to_config "$ID" "$IPV4" "$IPV6"
+    add_ipv6_to_config 
     create_systemd_service
     setup_tmux_session
     
