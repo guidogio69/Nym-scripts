@@ -54,7 +54,10 @@ install_ufw() {
 install_rust() {
     echo "Instalando Rust..."
     if ! command -v rustc &> /dev/null; then
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        curl -o sh.rustup.rs --proto '=https' --tlsv1.2 --silent -sSf https://sh.rustup.rs
+        chmod +x sh.rustup.rs
+        ./sh.rustup.rs -y --quiet
+        rm sh.rustup.rs
     else
         echo "Rust ya está instalado."
     fi
@@ -83,6 +86,8 @@ configure_ufw() {
             echo "Puerto $port (${ports[$port]}) ya está permitido."
         fi
     done
+    #Habilita el firewall
+    echo y | ufw enable
 }
 # Función para obtener la IPv4, IPv6 y el gateway de IPv6
 get_network_info() {
@@ -210,7 +215,7 @@ apply_network_rules() {
 
 # Función para agregar una dirección IPv6 al archivo config.toml sin duplicar IPs existentes
 add_ipv6_to_config() {
-    local nombre_id= $ID
+    local nombre_id= $ID  
     local ipv4= $IPv4
     local ipv6= $IPv6
     local config_path="$HOME/.nym/nym-nodes/$nombre_id/config/config.toml"
