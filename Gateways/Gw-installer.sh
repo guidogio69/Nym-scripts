@@ -381,6 +381,7 @@ main() {
     install_nym_node
     initialize_node
     update_network_interfaces
+    apply_network_rules
     add_ipv6_to_config 
     create_systemd_service
     setup_tmux_session
