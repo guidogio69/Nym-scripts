@@ -1,9 +1,11 @@
 [USO]
 
 Descarga el fichero y asignale permisos de ejecucion, Recomendable hacer todo el proceso como ROOT y trabajar sobre el directorio /root
+
     cd / &&  curl -o Gw-installer.sh -L https://raw.githubusercontent.com/guidogio69/Nym-scripts/main/Gateways/Gw-installer.sh && chmod +x Gw-installer.sh
 
 Edita el archivo
+
     vim Gw-installer.sh
 
 Modifica las variables solicitadas
@@ -12,13 +14,12 @@ YOUR_DOMAIN es el Hostname asociado al nodo. ej. GW1.nymtech.net
 COUNTRY  Nombre del pais donde esta el VPS, conviene ponerlo en alpha2 ej. AR para Argentina, ES para España (google it)
 
     ID="<ID>"
-
-YOUR_DOMAIN="<YOUR_DOMAIN>"
-
-COUNTRY="<COUNTRY_FULL_NAME>"
+    YOUR_DOMAIN="<YOUR_DOMAIN>"
+    COUNTRY="<COUNTRY_FULL_NAME>"
 
 Guarda la configuracion y ejecuta el archivo
-./Gw-installer.sh
+
+    ./Gw-installer.sh
 
 Si todo finaliza OK, se abrirá una interfaz de tmux donde tendras el log corriendo, y los datos para hacer el bonding.
 
