@@ -1,5 +1,5 @@
 #!/bin/bash
-
+## curl -o Gw-installer.sh -L https://raw.githubusercontent.com/guidogio69/Nym-scripts/main/Gateways/Gw-installer.sh && chmod +x Gw-installer.sh
 ####
 #   SCRIPT EN PERIODO DE PRUEBAS, USELO BAJO SU PROPIA RESPONSABILIDAD
 ####
@@ -193,60 +193,53 @@ add_ipv6_to_config() {
 
     if [ -f "$config_path" ]; then
         # Leer el contenido del archivo
-        mapfile -t lines < "$config_path"
-
-        local public_ips_block=()
-        local in_public_ips_block=false
-        local block_modified=false
+        local in_block=false
+        local public_ips_block=""
         local new_lines=()
+        local found_block=false
 
-        for line in "${lines[@]}"; do
-            if [[ $line == *"public_ips ="* ]]; then
-                in_public_ips_block=true
-                public_ips_block+=("$line")
-            elif $in_public_ips_block; then
-                public_ips_block+=("$line")
-                if [[ $line == *"]"* ]]; then
-                    in_public_ips_block=false
-
-                    # Extraer las IPs existentes
+        while IFS= read -r line; do
+            if [[ $line =~ ^public_ips\ =\ \[ ]]; then
+                in_block=true
+                public_ips_block+="$line"$'\n'
+                found_block=true
+            elif $in_block; then
+                if [[ $line =~ ^\]\ $ ]]; then
+                    in_block=false
+                    # Procesar el bloque de IPs
                     local existing_ips
-                    existing_ips=$(echo "${public_ips_block[*]}" | grep -oP "'\K[^']+")
-
-                    # Añadir la nueva IPv6 si no está ya presente
-                    local new_ips=("$ipv4")
-                    for ip in "${existing_ips[@]}"; do
+                    existing_ips=$(echo "$public_ips_block" | grep -oP "'\K[^']+" | tr '\n' ' ')
+                    
+                    # Convertir a un array y eliminar entradas vacías
+                    IFS=' ' read -r -a ip_array <<< "$existing_ips"
+                    local updated_ips=()
+                    for ip in "${ip_array[@]}"; do
                         if [[ -n "$ip" && "$ip" != "$ipv4" && "$ip" != "$ipv6" ]]; then
-                            new_ips+=("$ip")
+                            updated_ips+=("$ip")
                         fi
                     done
-                    if [[ ! " ${new_ips[*]} " =~ " $ipv6 " ]]; then
-                        new_ips+=("$ipv6")
+
+                    if [[ ! " ${updated_ips[*]} " =~ " $ipv6 " ]]; then
+                        updated_ips+=("$ipv6")
                     fi
 
-                    # Reconstruir el bloque public_ips
-                    public_ips_block=("public_ips = [")
-                    for ip in "${new_ips[@]}"; do
-                        public_ips_block+=("'$ip',")
+                    # Reconstruir el bloque de IPs
+                    public_ips_block="public_ips = ["
+                    for ip in "${updated_ips[@]}"; do
+                        public_ips_block+="\n'$ip',"
                     done
-                    public_ips_block+=("]")
+                    public_ips_block+="\n]"
 
-                    # Marcar que el bloque fue modificado
-                    block_modified=true
+                    new_lines+=("$public_ips_block")
+                else
+                    public_ips_block+="$line"$'\n'
                 fi
-            fi
-
-            # Agregar líneas al nuevo contenido del archivo
-            if $block_modified; then
-                new_lines+=("${public_ips_block[@]}")
-                block_modified=false
             else
                 new_lines+=("$line")
             fi
-        done
+        done < "$config_path"
 
-        # Si no se encontró el bloque public_ips, agregarlo
-        if [[ ! " ${new_lines[*]} " =~ "public_ips =" ]]; then
+        if ! $found_block; then
             new_lines+=("public_ips = [")
             new_lines+=("'$ipv4',")
             new_lines+=("'$ipv6'")
