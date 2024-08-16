@@ -197,6 +197,12 @@ apply_network_rules() {
         exit 1
     fi
 
+    echo "Aplicando reglas de iptables para WG ..."
+    if ! (cd "$work_dir" && sudo ./network_tunnel_manager.sh apply_iptables_rules_wg); then
+        echo "Error al aplicar reglas de iptables."
+        exit 1
+    fi
+
     # 9. Verifica las tablas de IP Nymtun
     echo "Verificando las tablas de IP Nymtun..."
     if ! (cd "$work_dir" && sudo ./network_tunnel_manager.sh check_nymtun_iptables); then
