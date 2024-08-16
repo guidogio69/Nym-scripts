@@ -1,5 +1,9 @@
 #!/bin/bash
 
+####
+#   SCRIPT EN PERIODO DE PRUEBAS, USELO BAJO SU PROPIA RESPONSABILIDAD
+####
+
 # Definir el directorio de trabajo y variables para inicializar el nodo
 # PATH Directorio para instalar el binario
 # ID Nombre asociado al nodo
