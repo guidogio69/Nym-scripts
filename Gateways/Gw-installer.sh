@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Definir el directorio de trabajo y variables para inicializar el nodo
+# PATH Directorio para instalar el binario
+# ID Nombre asociado al nodo
+# YOUR_DOMAIN es el Hostname asociado al nodo. ej. GW1.nymtech.net
+# COUNTRY  Nombre del pais donde esta el VPS, conviene ponerlo en alpha2 ej. AR para Argentina, ES para España (google it)
+path=~/Nymnode
+ID="<ID>"
+YOUR_DOMAIN="<YOUR_DOMAIN>"
+COUNTRY="<COUNTRY_FULL_NAME>"
+
 # Verificación de permisos de root o sudo
 if [ "$EUID" -ne 0 ]; then
   echo "Por favor, ejecuta este script como root o utilizando sudo."
@@ -70,6 +80,41 @@ configure_ufw() {
         fi
     done
 }
+# Función para obtener la IPv4, IPv6 y el gateway de IPv6
+get_network_info() {
+    echo "Obteniendo la información de red..."
+
+    # Obtener la dirección IPv4
+    IPv4=$(ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1)
+    echo "Dirección IPv4: $IPv4"
+
+    # Obtener la dirección IPv6
+    IPv6=$(ip -6 addr show scope global | grep inet6 | awk '{print $2}' | cut -d/ -f1)
+    echo "Dirección IPv6: $IPv6"
+
+    # Obtener el gateway de IPv6
+    IPv6_Gateway=$(ip -6 route show default | grep default | awk '{print $3}')
+    echo "Gateway IPv6: $IPv6_Gateway"
+
+    # Las variables ahora contienen las direcciones IPv4, IPv6 y el gateway de IPv6
+}
+
+# Función para limpiar configuraciones antiguas
+clean_old_configurations() {
+    local config_dir="$HOME/.nym/nym-nodes/"
+
+    if [ -d "$config_dir" ]; then
+        echo "Eliminando archivos y directorios en $config_dir"
+        if rm -rf "$config_dir"; then
+            echo "Archivos y directorios eliminados correctamente."
+        else
+            echo "Error al eliminar archivos en $config_dir."
+        fi
+    else
+        echo "El directorio $config_dir no existe."
+    fi
+}
+
 
 # Función para cambiar la prioridad de IPv4 sobre IPv6
 change_ip_priority() {
@@ -97,8 +142,8 @@ configure_nofile_limit() {
 # Función para descargar e instalar nym-node y network_tunnel_manager.sh
 install_nym_node() {
     echo "Instalando nym-node y network_tunnel_manager.sh..."
-    mkdir -p /root/Nymnode
-    cd /root/Nymnode || exit
+    mkdir -p "$path"
+    cd "$path" || exit
 
     # Verificar si nym-node ya está descargado
     if [ -f "nym-node" ]; then
@@ -117,16 +162,217 @@ install_nym_node() {
     fi
 }
 
+# Función para inicializar el nodo
+initialize_node() {
+    echo "Inicializando el nodo con las siguientes opciones:"
+    echo "ID: $ID"
+    echo "Dominio: $YOUR_DOMAIN"
+    echo "País: $COUNTRY"
+
+    # Comando para inicializar el nodo sin ejecutarlo
+    "$path/nym-node" run --id "$ID" --init-only --mode exit-gateway \
+        --public-ips "$(curl -4 https://ifconfig.me)" \
+        --hostname "$YOUR_DOMAIN" \
+        --http-bind-address 0.0.0.0:8080 \
+        --mixnet-bind-address 0.0.0.0:1789 \
+        --location "$COUNTRY" \
+        --accept-operator-terms-and-conditions \
+        --wireguard-enabled true
+}
+
+# Función para agregar una dirección IPv6 al archivo config.toml sin duplicar IPs existentes
+add_ipv6_to_config() {
+    local ID="$1"
+    local ipv4="$2"
+    local ipv6="$3"
+    
+    # Ruta del archivo config.toml
+    local config_path="$HOME/.nym/nym-nodes/$ID/config/config.toml"
+    
+    echo "Modificando $config_path para agregar la dirección IPv6..."
+
+    if [ -f "$config_path" ]; then
+        # Leer el archivo config.toml y procesar
+        local public_ips_start=-1
+        local public_ips_end=-1
+        local public_ips_block=""
+        local new_lines=""
+
+        while IFS= read -r line; do
+            if [[ $line == *"public_ips ="* ]]; then
+                public_ips_start=$((public_ips_start + 1))
+                public_ips_block+="$line"$'\n'
+                public_ips_start=$((public_ips_start + 1))
+            elif [[ $public_ips_start -ge 0 && $line == *"]"* ]]; then
+                public_ips_block+="$line"$'\n'
+                public_ips_end=$((public_ips_end + 1))
+                break
+            elif [ $public_ips_start -ge 0 ]; then
+                public_ips_block+="$line"$'\n'
+            fi
+        done < "$config_path"
+
+        if [ $public_ips_start -ge 0 ] && [ $public_ips_end -ge 0 ]; then
+            # Extraer IPs existentes
+            local existing_ips=$(echo "$public_ips_block" | grep -oP "'\K[^']+(?=')")
+            local new_ips=()
+
+            while IFS= read -r ip; do
+                new_ips+=("$ip")
+            done <<< "$(echo "$existing_ips" | tr ',' '\n')"
+
+            # Añadir la nueva IPv6 si no existe
+            if ! printf "%s\n" "${new_ips[@]}" | grep -q "^$ipv6$"; then
+                new_ips+=("$ipv6")
+            fi
+
+            # Construir el nuevo bloque de IPs
+            local new_public_ips_block="public_ips = [\n"
+            for ip in "${new_ips[@]}"; do
+                new_public_ips_block+="'$ip',\n"
+            done
+            new_public_ips_block="${new_public_ips_block%,}\n]\n"
+
+            # Reemplazar el bloque de IPs en el archivo
+            sed -i "/public_ips = \[/,/\]/c\\
+$new_public_ips_block
+" "$config_path"
+            echo "Dirección IPv6 añadida a $config_path"
+        else
+            # Añadir bloque si no existe
+            echo -e "\n# Ip address(es) of this host\npublic_ips = [\n'$ipv4',\n'$ipv6'\n]\n" >> "$config_path"
+            echo "Bloque de direcciones IP añadido a $config_path"
+        fi
+    else
+        echo "El archivo $config_path no existe. Asegúrate de que nym-node haya sido inicializado correctamente."
+    fi
+}
+# Función para crear un servicio systemd para nym-node
+create_systemd_service() {
+    local nombre_id="$ID"
+    local service_file="/etc/systemd/system/nym-node.service"
+    local exec_start_cmd="$path/nym-node run --id $nombre_id --deny-init --wireguard-enabled true --mode exit-gateway --accept-operator-terms-and-conditions"
+
+    local service_content="[Unit]
+Description=Nym Node
+StartLimitInterval=350
+StartLimitBurst=10
+
+[Service]
+User=root
+LimitNOFILE=65536
+ExecStart=$exec_start_cmd
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+"
+
+    # Crear el archivo de servicio
+    echo "$service_content" | sudo tee "$service_file" > /dev/null
+
+    # Recargar los servicios systemd, habilitar y empezar el servicio
+    sudo systemctl daemon-reload
+    sudo systemctl enable nym-node.service
+    sudo systemctl start nym-node.service
+
+    if [ $? -eq 0 ]; then
+        echo "Servicio systemd creado y activado en $service_file"
+    else
+        echo "Error al crear o iniciar el servicio systemd."
+    fi
+}
+# Función para actualizar las interfaces de red con rutas IPv6
+update_network_interfaces() {
+    local ipv6_gateway="$IPV6_GATEWAY"
+    local interfaces_path="/etc/network/interfaces"
+
+    # Comprobar si el archivo /etc/network/interfaces existe
+    if [ -f "$interfaces_path" ]; then
+        # Definir las rutas a agregar
+        local post_up_route_1="post-up /sbin/ip -r route add $ipv6_gateway dev eth0"
+        local post_up_route_2="post-up /sbin/ip -r route add default via $ipv6_gateway"
+
+        # Comprobar si las rutas ya existen en el archivo
+        if ! grep -qF "$post_up_route_1" "$interfaces_path"; then
+            echo "$post_up_route_1" | sudo tee -a "$interfaces_path" > /dev/null
+            echo "Añadida ruta: $post_up_route_1"
+        else
+            echo "La ruta $post_up_route_1 ya existe."
+        fi
+
+        if ! grep -qF "$post_up_route_2" "$interfaces_path"; then
+            echo "$post_up_route_2" | sudo tee -a "$interfaces_path" > /dev/null
+            echo "Añadida ruta: $post_up_route_2"
+        else
+            echo "La ruta $post_up_route_2 ya existe."
+        fi
+    else
+        echo "El archivo $interfaces_path no existe. Verifica la configuración de red."
+    fi
+}
+# Función para generar un nombre de sesión aleatorio
+generate_random_session_name() {
+    local length=${1:-8}
+    local letters="abcdefghijklmnopqrstuvwxyz"
+    local session_name=""
+    for (( i=0; i<length; i++ )); do
+        session_name+="${letters:RANDOM%${#letters}:1}"
+    done
+    echo "$session_name"
+}
+# Función para configurar una sesión de tmux
+setup_tmux_session() {
+    local nombre_id="$ID"
+    local session_name=$(generate_random_session_name)
+
+    # Comandos a ejecutar en cada panel
+    local comandos=(
+        'journalctl -u nym-node -f'  # Comando para el panel superior izquierdo
+        'watch ip addr show nymtun0'  # Comando para el panel inferior izquierdo
+        "$path/nym-node bonding-information --id $nombre_id"  # Comando para el panel inferior derecho
+    )
+
+    # Crear una nueva sesión en tmux
+    tmux new-session -d -s "$session_name"
+
+    # Dividir la ventana en dos paneles horizontalmente
+    tmux split-window -v -t "$session_name"
+
+    # Dividir el panel inferior en dos paneles verticalmente
+    tmux split-window -h -t "${session_name}:0.1"
+
+    # Enviar comandos a cada panel
+    tmux send-keys -t "${session_name}:0.0" "${comandos[0]}" C-m
+    tmux send-keys -t "${session_name}:0.1" "${comandos[1]}" C-m
+    tmux send-keys -t "${session_name}:0.2" "${comandos[2]}" C-m
+
+    # Adjuntar a la sesión para ver los resultados
+    tmux attach -t "$session_name"
+}
+
+
 # Función principal que llama a todas las demás funciones
+#Por dudas leer los comentarios de cada funcion
 main() {
     update_system
     install_dependencies
     install_ufw
     install_rust
     configure_ufw
+    get_network_info
     change_ip_priority
     configure_nofile_limit
+    clean_old_configurations
+    update_network_interfaces
     install_nym_node
+    initialize_node
+    add_ipv6_to_config "$ID" "$IPV4" "$IPV6"
+    create_systemd_service
+    setup_tmux_session
+    
 }
 
 # Ejecución del script principal
