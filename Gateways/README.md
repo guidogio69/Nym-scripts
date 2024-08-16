@@ -7,9 +7,9 @@ Edita el archivo
     vim Gw-installer.sh
 
 Modifica las variables solicitadas
-# ID Nombre asociado al nodo
-# YOUR_DOMAIN es el Hostname asociado al nodo. ej. GW1.nymtech.net
-# COUNTRY  Nombre del pais donde esta el VPS, conviene ponerlo en alpha2 ej. AR para Argentina, ES para España (google it)
+ID Nombre asociado al nodo
+YOUR_DOMAIN es el Hostname asociado al nodo. ej. GW1.nymtech.net
+COUNTRY  Nombre del pais donde esta el VPS, conviene ponerlo en alpha2 ej. AR para Argentina, ES para España (google it)
 
 ID="<ID>"
 YOUR_DOMAIN="<YOUR_DOMAIN>"
@@ -29,9 +29,9 @@ Edit the file
     vim Gw-installer.sh
 
 Modify the requested variables
-# ID Name associated to the node
-# YOUR_DOMAIN is the Hostname associated to the node. e.g. GW1.nymtech.net
-# COUNTRY Name of the country where the VPS is located, you should put it in alpha2 e.g. AR for Argentina, ES for Spain (google it)
+ID Name associated to the node
+YOUR_DOMAIN is the Hostname associated to the node. e.g. GW1.nymtech.net
+COUNTRY Name of the country where the VPS is located, you should put it in alpha2 e.g. AR for Argentina, ES for Spain (google it)
 
 ID="<ID>"
 YOUR_DOMAIN="<YOUR_DOMAIN>"
