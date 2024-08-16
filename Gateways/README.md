@@ -1,7 +1,7 @@
 [USO]
 
 Descarga el fichero y asignale permisos de ejecucion, Recomendable hacer todo el proceso como ROOT y trabajar sobre el directorio /root
-    cd / &&  curl -o Gw-installer.sh -L https://raw.githubusercontent.com/guidogio69/Nym-scripts/main/Gateways/Gw-installer.sh && chmod +x Gw-installer.sh
+    cd /root &&  curl -o Gw-installer.sh -L https://raw.githubusercontent.com/guidogio69/Nym-scripts/main/Gateways/Gw-installer.sh && chmod +x Gw-installer.sh
 
 Edita el archivo
     vim Gw-installer.sh
