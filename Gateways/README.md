@@ -11,7 +11,7 @@ ID Nombre asociado al nodo
 YOUR_DOMAIN es el Hostname asociado al nodo. ej. GW1.nymtech.net
 COUNTRY  Nombre del pais donde esta el VPS, conviene ponerlo en alpha2 ej. AR para Argentina, ES para España (google it)
 
-ID="<ID>"
+    ID="<ID>"
 
 YOUR_DOMAIN="<YOUR_DOMAIN>"
 
