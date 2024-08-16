@@ -180,6 +180,32 @@ initialize_node() {
         --wireguard-enabled true
 }
 
+apply_network_rules() {
+    local work_dir="$HOME/Nymnode"
+
+    echo "Ejecutando comandos en $work_dir"
+
+    # 8. Aplica las reglas de iptables con network_tunnel_manager.sh
+    echo "Aplicando reglas de iptables..."
+    if ! (cd "$work_dir" && sudo ./network_tunnel_manager.sh apply_iptables_rules); then
+        echo "Error al aplicar reglas de iptables."
+        exit 1
+    fi
+
+    # 9. Verifica las tablas de IP Nymtun
+    echo "Verificando las tablas de IP Nymtun..."
+    if ! (cd "$work_dir" && sudo ./network_tunnel_manager.sh check_nymtun_iptables); then
+        echo "Error al verificar las tablas de IP Nymtun."
+        exit 1
+    fi
+
+    # 10. Muestra la IPv6
+    echo "Mostrando la IPv6..."
+    if ! (cd "$work_dir" && sudo ./network_tunnel_manager.sh fetch_and_display_ipv6); then
+        echo "Error al mostrar la IPv6."
+        exit 1
+    fi
+}
 
 
 # Función para agregar una dirección IPv6 al archivo config.toml sin duplicar IPs existentes
@@ -347,6 +373,7 @@ main() {
     get_network_info
     change_ip_priority
     configure_nofile_limit
+    apply_network_rules
     update_network_interfaces
     install_nym_node
     initialize_node
