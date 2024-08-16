@@ -1,5 +1,5 @@
 #!/bin/bash
-## curl -o Gw-installer.sh -L https://raw.githubusercontent.com/guidogio69/Nym-scripts/main/Gateways/Gw-installer.sh && chmod +x Gw-installer.sh
+## cd /root &&  curl -o Gw-installer.sh -L https://raw.githubusercontent.com/guidogio69/Nym-scripts/main/Gateways/Gw-installer.sh && chmod +x Gw-installer.sh
 ####
 #   SCRIPT EN PERIODO DE PRUEBAS, USELO BAJO SU PROPIA RESPONSABILIDAD
 ####
@@ -379,9 +379,9 @@ main() {
     change_ip_priority
     configure_nofile_limit
     apply_network_rules
-    update_network_interfaces
     install_nym_node
     initialize_node
+    update_network_interfaces
     add_ipv6_to_config 
     create_systemd_service
     setup_tmux_session
