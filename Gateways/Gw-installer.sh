@@ -184,33 +184,41 @@ initialize_node() {
 
 # Función para agregar una dirección IPv6 al archivo config.toml sin duplicar IPs existentes
 add_ipv6_to_config() {
-    local nombre_id="$ID"
+    local nombre_id= $ID
+    local ipv4= $IPv4
+    local ipv6= $IPv6
     local config_path="$HOME/.nym/nym-nodes/$nombre_id/config/config.toml"
 
     if [ -f "$config_path" ]; then
         echo "Actualizando $config_path"
 
         # Leer el contenido del archivo
-        local lines=$(<"$config_path")
+        local existing_ips
+        existing_ips=$(grep -Pzo '(?s)public_ips\s*=\s*\[.*?\]' "$config_path" | tr -d '\0')
 
-        # Verificar si hay un bloque 'public_ips'
-        if grep -q 'public_ips =' "$config_path"; then
-            local block=$(sed -n '/public_ips = \[/,/]/p' "$config_path")
-            local existing_ips=$(echo "$block" | grep -oP "'\K[^']+")
+        if [ -n "$existing_ips" ]; then
+            # Extraer IPs existentes, eliminar vacías y duplicadas
+            local current_ips
+            current_ips=$(echo "$existing_ips" | grep -oP "'\K[^']+" | sed '/^$/d' | sort -u)
 
-            # Comprobar si la IPv6 ya está en la lista
-            if ! echo "$existing_ips" | grep -q "$IPv6"; then
-                existing_ips=$(echo "$existing_ips" | sed "/^$/d")
-                existing_ips="$existing_ips, '$IPv6'"
-            fi
+            # Agregar IPs si no están presentes
+            local new_ips=""
+            for ip in $current_ips; do
+                if [ "$ip" != "$ipv4" ] && [ "$ip" != "$ipv6" ]; then
+                    new_ips+="'$ip', "
+                fi
+            done
+            new_ips+="'$ipv4', '$ipv6'"
 
-            # Reescribir el bloque 'public_ips'
-            local new_block="public_ips = [\n$(echo "$existing_ips" | sed "s/,/,\\n/g")\n]\n"
+            # Crear nuevo bloque de 'public_ips'
+            local new_block="public_ips = [\n$(echo "$new_ips" | sed 's/, $//')\n]"
+
+            # Reemplazar el bloque 'public_ips' en el archivo
             sed -i "/public_ips = \[/,/]/d" "$config_path"
             sed -i "/^# Ip address(es) of this host/a $new_block" "$config_path"
         else
             # Agregar un nuevo bloque 'public_ips' si no existe
-            echo -e "\n# Ip address(es) of this host\npublic_ips = [\n'$IPv4',\n'$IPv6'\n]" >> "$config_path"
+            echo -e "\n# Ip address(es) of this host\npublic_ips = [\n'$ipv4',\n'$ipv6'\n]" >> "$config_path"
         fi
 
         echo "Dirección IPv6 añadida a $config_path"
@@ -218,6 +226,7 @@ add_ipv6_to_config() {
         echo "El archivo $config_path no existe. Asegúrate de que nym-node haya sido inicializado correctamente."
     fi
 }
+
 
 # Función para crear un servicio systemd para nym-node
 create_systemd_service() {
