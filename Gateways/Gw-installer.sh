@@ -365,7 +365,6 @@ setup_tmux_session() {
     tmux attach -t "$session_name"
 }
 
-
 # Función principal que llama a todas las demás funciones
 #Por dudas leer los comentarios de cada funcion
 main() {
