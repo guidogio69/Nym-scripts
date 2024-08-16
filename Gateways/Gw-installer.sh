@@ -383,7 +383,6 @@ main() {
     get_network_info
     change_ip_priority
     configure_nofile_limit
-    apply_network_rules
     install_nym_node
     initialize_node
     update_network_interfaces
