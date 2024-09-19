@@ -1,0 +1,192 @@
+zabbix_export:
+  version: '6.4'
+  template_groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    - uuid: b46b85d82164406fb68f9779bc76e6f7
+      template: Nym-Gateway
+      name: Nym-Gateway
+      groups:
+        - name: Templates
+      items:
+        - uuid: 55fefe0aff284ec5bea88b347a66d656
+          name: 'GW Routing Score AVG'
+          type: HTTP_AGENT
+          key: gw_rs_avg
+          delay: 5m
+          history: 30d
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.avg_uptime
+          url: 'https://validator.nymtech.net/api/v1/status/gateway/{$ID_KEY}/avg_uptime'
+          tags:
+            - tag: component
+              value: NYM
+        - uuid: 8f55c9637ed7499ea5d6064140a57cda
+          name: 'GW Routing Score'
+          type: HTTP_AGENT
+          key: gw_rs_recent
+          delay: 5m
+          history: 30d
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.node_performance.most_recent
+          url: 'https://validator.nymtech.net/api/v1/status/gateway/{$ID_KEY}/avg_uptime'
+          tags:
+            - tag: component
+              value: NYM
+        - uuid: c7fae6b3dcbd4994acdb6f4444069ba6
+          name: Location
+          type: HTTP_AGENT
+          key: location
+          delay: '86400'
+          history: 30d
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.location
+          url: 'http://{HOST.IP}:8080/api/v1/auxiliary-details'
+          tags:
+            - tag: component
+              value: NYM
+        - uuid: 814433f6e1ef4744a5beae49e154f3e6
+          name: 'Inclusion probability to mixnet'
+          type: HTTP_AGENT
+          key: ms_ip
+          delay: 5m
+          history: 30d
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.in_active
+          url: 'https://validator.nymtech.net/api/v1/status/mixnode/{$ID_RS}/inclusion-probability'
+          tags:
+            - tag: component
+              value: NYM
+        - uuid: 8700cc79825b41c2b21c09b0c461e693
+          name: 'Nym Price - USD/NYM'
+          type: HTTP_AGENT
+          key: nym_usd
+          delay: '14400'
+          value_type: FLOAT
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.nym.usd
+          url: 'https://api.coingecko.com/api/v3/simple/price?ids=nym&vs_currencies=usd'
+          tags:
+            - tag: component
+              value: NYM
+        - uuid: 46eb1e5b3f9b45f0b22bdaafd9a04c95
+          name: 'Build Version'
+          type: HTTP_AGENT
+          key: version
+          delay: '86400'
+          history: 30d
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.build_version
+          url: 'http://{HOST.IP}:8080/api/v1/build-information'
+          tags:
+            - tag: component
+              value: NYM
+      macros:
+        - macro: '{$ID_KEY}'
+          value: '<CHANGE ME>'
+          description: 'Debes cambiar este valor por el Identity Key de tu nodo'
+      dashboards:
+        - uuid: 5e677803c45242668cfb248994db7348
+          name: Nym-Gateway
+          display_period: '60'
+          pages:
+            - widgets:
+                - type: graph
+                  name: 'Routing Score AVG'
+                  width: '11'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid
+                      value:
+                        host: Nym-Gateway
+                        key: gw_rs_avg
+                    - type: INTEGER
+                      name: source_type
+                      value: '1'
+                - type: item
+                  name: 'Build Version'
+                  'y': '4'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: adv_conf
+                      value: '1'
+                    - type: STRING
+                      name: bg_color
+                      value: 7A3F0B
+                    - type: ITEM
+                      name: itemid
+                      value:
+                        host: Nym-Gateway
+                        key: version
+                    - type: INTEGER
+                      name: show
+                      value: '2'
+                    - type: INTEGER
+                      name: show
+                      value: '4'
+                - type: item
+                  name: 'Nym Price'
+                  x: '4'
+                  'y': '4'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: adv_conf
+                      value: '1'
+                    - type: STRING
+                      name: bg_color
+                      value: 880E4F
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '5'
+                    - type: ITEM
+                      name: itemid
+                      value:
+                        host: Nym-Gateway
+                        key: nym_usd
+                - type: item
+                  name: 'Routing Score'
+                  x: '11'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: adv_conf
+                      value: '1'
+                    - type: STRING
+                      name: bg_color
+                      value: 00838F
+                    - type: ITEM
+                      name: itemid
+                      value:
+                        host: Nym-Gateway
+                        key: gw_rs_avg
+                    - type: INTEGER
+                      name: show
+                      value: '2'
+                    - type: INTEGER
+                      name: show
+                      value: '4'
