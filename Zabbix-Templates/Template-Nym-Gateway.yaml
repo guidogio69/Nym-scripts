@@ -100,6 +100,13 @@ zabbix_export:
           tags:
             - tag: component
               value: NYM
+          triggers:
+            - uuid: 39efafdf696d4bed9e07052d129318cb
+              expression: change(/Nym-Gateway/version)>0
+              name: 'Build Version has changed'
+              priority: INFO
+              description: 'Acknowledge to close the problem manually.'
+              manual_close: 'YES'
       macros:
         - macro: '{$ID_KEY}'
           value: '<CHANGE ME>'
