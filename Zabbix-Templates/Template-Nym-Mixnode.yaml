@@ -139,6 +139,13 @@ zabbix_export:
           tags:
             - tag: component
               value: NYM
+          triggers:
+            - uuid: 3b584f1f86d34d64bdf8c6c90a8a90ac
+              expression: change(/Nym-Mixnode/version)>0
+              name: 'Build Version has changed'
+              priority: INFO
+              description: 'Acknowledge to close the problem manually.'
+              manual_close: 'YES'
       macros:
         - macro: '{$ID_RS}'
           value: '<CHANGE ME>'
@@ -288,3 +295,11 @@ zabbix_export:
                     - type: INTEGER
                       name: show
                       value: '4'
+  triggers:
+    - uuid: d6b9fa88242b46a18efb75048ca25f79
+      expression: |
+        last(/Nym-Mixnode/ms_tx)<last(/Nym-Mixnode/ms_tx,#2) or 
+        last(/Nym-Mixnode/ms_rx)<last(/Nym-Mixnode/ms_rx,#2)
+      name: 'Service was stopped/restarted'
+      priority: HIGH
+      manual_close: 'YES'
