@@ -9,6 +9,7 @@ En los gateways debes poner tu Identity Key ej. HNw9Z6HqwuhUXrqx6CDWMLK2bGGhCaPT
 [Mixnode]
 En los Mixnodes debes poner tu ID, puedes obtenerlo en https://harbourmaster.nymtech.net/ filtrando por el Identity Key del nodo.
 ej. 1764
+
 ![image](https://github.com/user-attachments/assets/476a66c2-eaa4-4c54-a1cb-97ad68b6536f)
 
 ![image](https://github.com/user-attachments/assets/72df8872-704a-4e0d-977f-8583dc187cde)
